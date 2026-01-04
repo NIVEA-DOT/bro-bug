@@ -9,7 +9,6 @@ interface MediaCardProps {
   onRegenerate: (index: number) => void;
   onGenerateVideo: (index: number) => void;
   onGenerateTTS: (index: number) => void;
-  onUpscale: (index: number) => void;
   isDisabled: boolean;
 }
 
@@ -19,15 +18,14 @@ const MagicIcon = () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24"
 const VideoIcon = () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>;
 const AudioIcon = () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>;
 const DownloadIcon = () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>;
-const SparklesIcon = () => <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>;
 
-const MediaCard: React.FC<MediaCardProps> = ({ media, onDownload, onRegenerate, onGenerateVideo, onGenerateTTS, onUpscale, isDisabled }) => {
+const MediaCard: React.FC<MediaCardProps> = ({ media, onDownload, onRegenerate, onGenerateVideo, onGenerateTTS, isDisabled }) => {
 
   const handleDownloadClick = () => onDownload(media.mediaUrl, `image-${media.index}.png`);
   const handleDownloadVideoClick = () => media.videoUrl && onDownload(media.videoUrl, `video-${media.index}.mp4`);
   const handleDownloadAudioClick = () => media.audioUrl && onDownload(media.audioUrl, `audio-${media.index}.mp3`);
 
-  const isAnyProcessing = media.isProcessing || media.isVideoProcessing || media.isAudioProcessing || media.isUpscaling || isDisabled;
+  const isAnyProcessing = media.isProcessing || media.isVideoProcessing || media.isAudioProcessing || isDisabled;
 
   return (
     <div 
@@ -50,11 +48,11 @@ const MediaCard: React.FC<MediaCardProps> = ({ media, onDownload, onRegenerate, 
         )}
         
         {/* Processing Overlay */}
-        {(media.isProcessing || media.isVideoProcessing || media.isAudioProcessing || media.isUpscaling) && (
+        {(media.isProcessing || media.isVideoProcessing || media.isAudioProcessing) && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-[2px] z-10 text-white">
             <div className="w-8 h-8 border-4 border-white/30 border-t-white rounded-full animate-spin mb-3"></div>
             <span className="text-xs font-bold tracking-wider uppercase">
-               {media.isProcessing ? 'Generating Image...' : media.isUpscaling ? 'Upscaling to 4K...' : media.isVideoProcessing ? 'Rendering Video...' : 'Synthesizing Audio...'}
+               {media.isProcessing ? 'Generating Image...' : media.isVideoProcessing ? 'Rendering Video...' : 'Synthesizing Audio...'}
             </span>
           </div>
         )}
@@ -96,18 +94,6 @@ const MediaCard: React.FC<MediaCardProps> = ({ media, onDownload, onRegenerate, 
             title={media.mediaUrl ? "Regenerate Image" : "Generate Image"}
             icon={media.mediaUrl ? <RefreshIcon /> : <MagicIcon />}
          />
-
-         {/* 4K Upscale */}
-         <Button
-            onClick={() => onUpscale(media.index)}
-            className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all shadow-sm border border-gray-100 ${media.isUpscaling ? 'bg-purple-50 text-purple-600' : 'bg-white text-gray-600 hover:bg-purple-50 hover:text-purple-600'}`}
-            disabled={isAnyProcessing || !media.mediaUrl}
-            title="Upscale to 4K"
-         >
-           <div className="flex flex-col items-center justify-center leading-none">
-             <span className="text-[10px] font-black">4K</span>
-           </div>
-         </Button>
 
          {/* Video */}
          <Button

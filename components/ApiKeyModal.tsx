@@ -9,8 +9,6 @@ interface ApiKeyModalProps {
   setElevenLabsKey: (key: string) => void;
   elevenLabsVoiceId: string;
   setElevenLabsVoiceId: (id: string) => void;
-  falAiKey?: string;
-  setFalAiKey?: (key: string) => void;
   googleApiKey: string;
   setGoogleApiKey: (key: string) => void;
 }
@@ -22,8 +20,6 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
   setElevenLabsKey, 
   elevenLabsVoiceId, 
   setElevenLabsVoiceId,
-  falAiKey = '',
-  setFalAiKey,
   googleApiKey,
   setGoogleApiKey
 }) => {
@@ -62,27 +58,6 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
                 <p className="text-xs text-gray-400 ml-1">
                   이미지 및 비디오 생성을 위해 필요합니다. <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="underline hover:text-[#3182f6] font-bold">키 발급받기</a>
                 </p>
-              </div>
-            </div>
-          </section>
-
-          {/* Upscaling Section */}
-          <section className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-1 h-6 bg-[#8b5cf6] rounded-full"></div>
-              <h3 className="text-lg font-bold text-[#191f28]">4K Upscale (Fal.ai)</h3>
-            </div>
-            <div className="p-6 bg-[#f9fafb] rounded-[1.5rem] border border-gray-100">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-[#8b95a1] ml-1 uppercase tracking-wider">Fal.ai API Key</label>
-                <input 
-                  type="password" 
-                  value={falAiKey} 
-                  onChange={(e) => setFalAiKey && setFalAiKey(e.target.value)} 
-                  className="w-full p-4 bg-white border border-gray-200 focus:border-[#8b5cf6] rounded-xl text-sm transition-all outline-none font-medium" 
-                  placeholder="key-..."
-                />
-                <p className="text-xs text-gray-400 ml-1">초고화질 업스케일링을 위해 필요합니다.</p>
               </div>
             </div>
           </section>

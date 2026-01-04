@@ -23,8 +23,7 @@ export interface GeneratedMedia {
   isProcessing?: boolean;
   isVideoProcessing?: boolean;
   isAudioProcessing?: boolean;
-  isUpscaling?: boolean; // New state for upscaling
-  isIntro?: boolean; // New state to identify intro segments
+  isIntro?: boolean;
 }
 
 export interface SavedProject {
@@ -34,7 +33,6 @@ export interface SavedProject {
   media: GeneratedMedia[];
   elevenLabsKey?: string;
   elevenLabsVoiceId?: string;
-  falAiKey?: string; // New key
   aspectRatio?: string;
   artStyle?: string;
   customArtStyle?: string;

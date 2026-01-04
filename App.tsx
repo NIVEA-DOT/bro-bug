@@ -10,7 +10,6 @@ import {
   generateFullScript 
 } from './services/geminiService';
 import { generateTTS } from './services/elevenLabsService';
-import { upscaleImage } from './services/falAiService';
 import { saveProject, getProjects, deleteProject } from './services/storageService';
 import { GeneratedMedia, SavedProject, ContentIdea } from './types';
 import { DEFAULT_ASPECT_RATIO, DEFAULT_ART_STYLE } from './constants';
@@ -51,10 +50,9 @@ const App: React.FC = () => {
   const [googleApiKey, setGoogleApiKey] = useState<string>('');
   const [elevenLabsKey, setElevenLabsKey] = useState<string>('');
   const [voiceId, setVoiceId] = useState<string>('nPczCjzI2devNBz1zWbc');
-  const [falAiKey, setFalAiKey] = useState<string>('');
 
   // Loading States
-  const [loadingType, setLoadingType] = useState<'none' | 'ideas' | 'script' | 'planning' | 'image' | 'video' | 'audio' | 'zip' | 'upscale' | 'single_image'>('none');
+  const [loadingType, setLoadingType] = useState<'none' | 'ideas' | 'script' | 'planning' | 'image' | 'video' | 'audio' | 'zip' | 'single_image'>('none');
   const [progress, setProgress] = useState<number>(0); 
   const [loadingStatus, setLoadingStatus] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -81,12 +79,10 @@ const App: React.FC = () => {
       setGoogleApiKey(localStorage.getItem(`google_api_key_${user.uid}`) || '');
       setElevenLabsKey(localStorage.getItem(`elevenlabs_key_${user.uid}`) || '');
       setVoiceId(localStorage.getItem(`elevenlabs_voice_id_${user.uid}`) || 'nPczCjzI2devNBz1zWbc');
-      setFalAiKey(localStorage.getItem(`falai_key_${user.uid}`) || '');
     } else {
       setGoogleApiKey('');
       setElevenLabsKey('');
       setVoiceId('nPczCjzI2devNBz1zWbc');
-      setFalAiKey('');
     }
   }, [user]);
 
@@ -96,9 +92,8 @@ const App: React.FC = () => {
       localStorage.setItem(`google_api_key_${user.uid}`, googleApiKey);
       localStorage.setItem(`elevenlabs_key_${user.uid}`, elevenLabsKey);
       localStorage.setItem(`elevenlabs_voice_id_${user.uid}`, voiceId);
-      localStorage.setItem(`falai_key_${user.uid}`, falAiKey);
     }
-  }, [googleApiKey, elevenLabsKey, voiceId, falAiKey, user]);
+  }, [googleApiKey, elevenLabsKey, voiceId, user]);
 
   // Handle Logout
   const handleLogout = async () => {
@@ -200,7 +195,6 @@ const App: React.FC = () => {
         mediaUrl: "", 
         index: index + 1,
         isProcessing: false,
-        isUpscaling: false,
         isIntro: index < introCount
       }));
 
@@ -238,8 +232,7 @@ const App: React.FC = () => {
         script: introScript + "\n\n" + bodyScript,
         media: generatedMedia, 
         aspectRatio: DEFAULT_ASPECT_RATIO,
-        artStyle: DEFAULT_ART_STYLE,
-        falAiKey: falAiKey
+        artStyle: DEFAULT_ART_STYLE
       });
     } catch(e:any) {
        setError(e.message);
@@ -282,8 +275,7 @@ const App: React.FC = () => {
           script: introScript + "\n\n" + bodyScript,
           media: generatedMedia, 
           aspectRatio: DEFAULT_ASPECT_RATIO,
-          artStyle: DEFAULT_ART_STYLE,
-          falAiKey: falAiKey
+          artStyle: DEFAULT_ART_STYLE
         });
       }
     } catch (e: any) {
@@ -291,47 +283,6 @@ const App: React.FC = () => {
     } finally {
       setLoadingType('none');
     }
-  };
-
-  const handleUpscaleImage = async (index: number) => {
-    if (!falAiKey) { setError("Fal.ai API 키가 설정되지 않았습니다."); setShowSettings(true); return; }
-    const item = generatedMedia.find(m => m.index === index);
-    if (!item || !item.mediaUrl) return;
-
-    setLoadingType('single_image');
-    setLoadingStatus(`장면 ${index} 4K 변환 중... (최대 2분 소요)`);
-    setGeneratedMedia(prev => prev.map(p => p.index === index ? { ...p, isUpscaling: true } : p));
-
-    try {
-      const upscaledUrl = await upscaleImage(item.mediaUrl, falAiKey);
-      setGeneratedMedia(prev => prev.map(p => p.index === index ? { ...p, mediaUrl: upscaledUrl, isUpscaling: false } : p));
-    } catch (e: any) {
-      setError(e.message);
-      setGeneratedMedia(prev => prev.map(p => p.index === index ? { ...p, isUpscaling: false } : p));
-    } finally {
-      setLoadingType('none');
-    }
-  };
-
-  const handleUpscaleAllImages = async () => {
-    if (!falAiKey) { setError("Fal.ai API 키가 설정되지 않았습니다."); setShowSettings(true); return; }
-    setLoadingType('upscale');
-    const itemsToUpscale = generatedMedia.filter(m => m.mediaUrl && !m.isUpscaling);
-    let count = 0;
-    for (const item of itemsToUpscale) {
-      setProgress(Math.round((count / itemsToUpscale.length) * 100));
-      setLoadingStatus(`Upscaling Scene ${item.index} to 4K...`);
-      setGeneratedMedia(prev => prev.map(p => p.index === item.index ? { ...p, isUpscaling: true } : p));
-      try {
-        const upscaledUrl = await upscaleImage(item.mediaUrl, falAiKey);
-        setGeneratedMedia(prev => prev.map(p => p.index === item.index ? { ...p, mediaUrl: upscaledUrl, isUpscaling: false } : p));
-      } catch (e: any) {
-        console.error(`Failed to upscale scene ${item.index}`, e);
-        setGeneratedMedia(prev => prev.map(p => p.index === item.index ? { ...p, isUpscaling: false } : p));
-      }
-      count++;
-    }
-    setLoadingType('none');
   };
 
   const handleGenerateVideo = async (index: number) => {
@@ -438,7 +389,6 @@ const App: React.FC = () => {
     // Try to split coarsely if needed, or just dump into intro for now since history structure might vary
     setBodyScript("");
     setGeneratedMedia(p.media);
-    setFalAiKey(p.falAiKey || "");
     setIsHistoryOpen(false);
     setCurrentStep(5);
   };
@@ -624,7 +574,6 @@ const App: React.FC = () => {
                   onRegenerate={() => handleGenerateSingleImage(m.index)} 
                   onGenerateVideo={handleGenerateVideo} 
                   onGenerateTTS={handleGenerateTTS} 
-                  onUpscale={handleUpscaleImage}
                   isDisabled={false} 
                 />
               ))}
@@ -635,7 +584,6 @@ const App: React.FC = () => {
                 <div className="bg-white p-6 rounded-[2rem] toss-shadow">
                    <h4 className="font-bold text-[#191f28] mb-4">Batch Actions</h4>
                    <Button onClick={handleGenerateAllTTS} fullWidth variant="secondary" className="bg-[#e8f3ff] text-[#1b64da] h-14 rounded-2xl font-bold mb-3 justify-start px-6" icon="🎙️">전체 TTS 생성</Button>
-                   <Button onClick={handleUpscaleAllImages} fullWidth variant="secondary" className="bg-[#f3e8ff] text-[#7c3aed] h-14 rounded-2xl font-bold mb-3 justify-start px-6" icon="✨">전체 4K Upscale</Button>
                    <Button onClick={handleFinalZipDownload} fullWidth variant="primary" className="bg-[#191f28] text-white h-14 rounded-2xl font-bold justify-start px-6" icon="📦">전체 다운로드 (.zip)</Button>
                 </div>
                 <Button onClick={() => setShowThumbnailModal(true)} icon="🖼️" fullWidth variant="secondary" className="bg-white text-[#4e5968] h-14 rounded-2xl font-bold toss-shadow">썸네일 제작</Button>
@@ -679,7 +627,6 @@ const App: React.FC = () => {
                 {loadingType === 'ideas' ? '아이디어 발굴 중' :
                  loadingType === 'script' ? '대본 작성 중' :
                  loadingType === 'planning' ? '대본 분석 및 설계 중' : 
-                 loadingType === 'upscale' ? '4K 업스케일링 중' : 
                  loadingType === 'single_image' ? '개별 작업 처리 중' : '콘텐츠 생성 중'}
               </h2>
               <p className="text-[#4e5968] font-medium mb-8">{loadingStatus}</p>
@@ -725,7 +672,7 @@ const App: React.FC = () => {
           </div>
         </header>
 
-        <ApiKeyModal isOpen={showSettings} onClose={() => setShowSettings(false)} elevenLabsKey={elevenLabsKey} setElevenLabsKey={setElevenLabsKey} elevenLabsVoiceId={voiceId} setElevenLabsVoiceId={setVoiceId} falAiKey={falAiKey} setFalAiKey={setFalAiKey} googleApiKey={googleApiKey} setGoogleApiKey={setGoogleApiKey} />
+        <ApiKeyModal isOpen={showSettings} onClose={() => setShowSettings(false)} elevenLabsKey={elevenLabsKey} setElevenLabsKey={setElevenLabsKey} elevenLabsVoiceId={voiceId} setElevenLabsVoiceId={setVoiceId} googleApiKey={googleApiKey} setGoogleApiKey={setGoogleApiKey} />
         <HistoryModal isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} projects={historyProjects} onLoad={handleHistoryLoad} onDelete={async (id) => { await deleteProject(id); setHistoryProjects(await getProjects()); }} />
         <ThumbnailModal isOpen={showThumbnailModal} onClose={() => setShowThumbnailModal(false)} script={introScript + " " + bodyScript} onGenerateText={(script) => generateThumbnailText(script, googleApiKey)} />
 
