@@ -214,10 +214,7 @@ const App: React.FC = () => {
 
   // --- Step 5: Production ---
   const handleGenerateSingleImage = async (index: number) => {
-    setLoadingType('single_image');
-    setLoadingStatus(`장면 ${index} 이미지를 생성하고 있습니다...`);
-    setProgress(0);
-    setError(null);
+    // Non-blocking single image generation
     try {
       setGeneratedMedia(prev => prev.map(p => p.index === index ? { ...p, isProcessing: true } : p));
       const item = generatedMedia.find(p => p.index === index);
@@ -237,13 +234,11 @@ const App: React.FC = () => {
     } catch(e:any) {
        setError(e.message);
        setGeneratedMedia(prev => prev.map(p => p.index === index ? { ...p, isProcessing: false } : p));
-    } finally {
-       setLoadingType('none');
     }
   };
 
   const handleStartProduction = async () => {
-    setLoadingType('image');
+    // Non-blocking batch generation
     setError(null);
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -254,9 +249,9 @@ const App: React.FC = () => {
 
       for (const item of pendingItems) {
         if (controller.signal.aborted) break;
+        
+        // Show processing status on the specific card
         setGeneratedMedia(prev => prev.map(p => p.index === item.index ? { ...p, isProcessing: true } : p));
-        setLoadingStatus(`장면 ${item.index} 이미지 생성 중...`);
-        setProgress(Math.round((completedCount / generatedMedia.length) * 100));
 
         try {
           if (completedCount > 0) await new Promise(r => setTimeout(r, 4000));
@@ -280,8 +275,6 @@ const App: React.FC = () => {
       }
     } catch (e: any) {
       setError(e.message);
-    } finally {
-      setLoadingType('none');
     }
   };
 
@@ -289,10 +282,7 @@ const App: React.FC = () => {
     const media = generatedMedia.find(m => m.index === index);
     if (!media || !media.mediaUrl || media.videoUrl) return;
     
-    // Removed global loading/blocking UI to allow concurrent requests
-    // setLoadingType('single_image');
-    // setLoadingStatus(`장면 ${index} 비디오 생성 중...`);
-    
+    // Non-blocking video generation
     setGeneratedMedia(prev => prev.map(m => m.index === index ? { ...m, isVideoProcessing: true } : m));
     try {
       const vUrl = await generateVideoFromImage(media.mediaUrl, media.videoMotionPrompt || "Cinematic pan.", googleApiKey);
@@ -307,8 +297,8 @@ const App: React.FC = () => {
     const media = generatedMedia.find(m => m.index === index);
     if (!media) return;
     if (!elevenLabsKey) { setError("ElevenLabs API Key를 먼저 설정하세요."); setShowSettings(true); return; }
-    setLoadingType('single_image');
-    setLoadingStatus(`장면 ${index} TTS 생성 중...`);
+    
+    // Non-blocking TTS generation for single item
     setGeneratedMedia(prev => prev.map(m => m.index === index ? { ...m, isAudioProcessing: true } : m));
     try {
       const aUrl = await generateTTS(media.originalScriptSegment, elevenLabsKey, voiceId);
@@ -316,8 +306,6 @@ const App: React.FC = () => {
     } catch (e: any) { 
       setError(e.message); 
       setGeneratedMedia(prev => prev.map(m => m.index === index ? { ...m, isAudioProcessing: false } : m)); 
-    } finally {
-      setLoadingType('none');
     }
   };
 
