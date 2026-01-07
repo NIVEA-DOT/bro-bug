@@ -288,8 +288,11 @@ const App: React.FC = () => {
   const handleGenerateVideo = async (index: number) => {
     const media = generatedMedia.find(m => m.index === index);
     if (!media || !media.mediaUrl || media.videoUrl) return;
-    setLoadingType('single_image');
-    setLoadingStatus(`장면 ${index} 비디오 생성 중...`);
+    
+    // Removed global loading/blocking UI to allow concurrent requests
+    // setLoadingType('single_image');
+    // setLoadingStatus(`장면 ${index} 비디오 생성 중...`);
+    
     setGeneratedMedia(prev => prev.map(m => m.index === index ? { ...m, isVideoProcessing: true } : m));
     try {
       const vUrl = await generateVideoFromImage(media.mediaUrl, media.videoMotionPrompt || "Cinematic pan.", googleApiKey);
@@ -297,8 +300,6 @@ const App: React.FC = () => {
     } catch (e: any) { 
       setError(e.message); 
       setGeneratedMedia(prev => prev.map(m => m.index === index ? { ...m, isVideoProcessing: false } : m)); 
-    } finally {
-      setLoadingType('none');
     }
   };
 
