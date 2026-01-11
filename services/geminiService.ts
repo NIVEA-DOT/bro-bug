@@ -40,9 +40,9 @@ function robustJsonParse(text: string | undefined): any {
   }
 }
 
-// Core Fixed Prompt (Style Bible) - Updated to Cinematic Solarpunk Sci-Fi
+// Core Fixed Prompt (Style Bible) - Updated to Stylized 3D Cinematic (Pixar/Dreamworks)
 const CORE_STYLE_INSTRUCTION = `
-cinematic solarpunk sci-fi illustration, painterly digital oil painting style, visible brush strokes, cinematic matte painting, warm golden hour lighting, teal and orange color grading, epic futuristic cityscape, atmospheric depth, volumetric light, soft clouds, distant flying vehicles, dreamy and calm mood, sci-fi concept art, artstation quality, ultra detailed, 4k
+stylized 3D cinematic illustration, pixar style, dreamworks style, soft warm lighting, cinematic depth of field, global illumination, smooth plastic-like skin, highly detailed, ultra clean render, professional studio lighting, cozy indoor atmosphere, warm color palette, high quality 3d character render, octane render, unreal engine, 4k
 `;
 
 // Step 1: Generate Content Ideas
@@ -119,8 +119,8 @@ export async function analyzeSegmentsForPrompts(
   
   // 배치 사이즈 유지 (안정성)
   const batchSize = 4;
-  // Updated character description to fit Solarpunk style
-  const characterDescription = "A character fitting the solarpunk sci-fi setting, wearing futuristic yet organic attire.";
+  // Updated character description to fit the new Stylized 3D style
+  const characterDescription = "A friendly and expressive 3D character in a stylized animation style, fitting the cozy and warm atmosphere.";
 
   for (let i = 0; i < segments.length; i += batchSize) {
     const currentBatch = segments.slice(i, i + batchSize);
@@ -129,7 +129,7 @@ export async function analyzeSegmentsForPrompts(
       [STYLE DEFINITION]
       ${CORE_STYLE_INSTRUCTION}
 
-      [TASK: CONTINUOUS SCI-FI STORYBOARD]
+      [TASK: CONTINUOUS 3D ANIMATION STORYBOARD]
       Protagonist: ${characterDescription}
       
       Analyze the following ${currentBatch.length} text segments and generate visual prompts.
@@ -141,7 +141,7 @@ export async function analyzeSegmentsForPrompts(
       1. Return a JSON Array with exactly ${currentBatch.length} objects.
       2. The order MUST match the input order (Item 0 -> Index 0).
       3. properties:
-         - image_prompt: English description of the scene. Include character actions and expressions. Ensure they fit the "Cinematic Solarpunk" style.
+         - image_prompt: English description of the scene. Include character actions and facial expressions matching the text emotion. Ensure it fits the "Pixar/Dreamworks" 3D style.
          - video_motion_prompt: Simple camera motion description.
       4. DO NOT return the original Korean text.
     `;
@@ -172,7 +172,7 @@ export async function analyzeSegmentsForPrompts(
             const aiResult = parsedData[idx] || {};
             return {
                 scriptSegment: originalSegment, 
-                imagePrompt: aiResult.image_prompt || "A futuristic solarpunk scene.",
+                imagePrompt: aiResult.image_prompt || "A stylized 3D animation scene.",
                 videoMotionPrompt: aiResult.video_motion_prompt || "Cinematic pan"
             };
         });
@@ -183,7 +183,7 @@ export async function analyzeSegmentsForPrompts(
         console.error("Batch Error:", e);
         const fallbackData = currentBatch.map(s => ({
             scriptSegment: s,
-            imagePrompt: "A futuristic solarpunk scene.",
+            imagePrompt: "A stylized 3D animation scene.",
             videoMotionPrompt: "Cinematic pan"
         }));
         results.push(...fallbackData);
@@ -208,7 +208,7 @@ export async function generateImage(
 
   const response: GenerateContentResponse = await callWithRetry(() => ai.models.generateContent({
     model: IMAGE_GENERATION_MODEL,
-    contents: { parts: [{ text: `High-quality masterpiece, ${finalPrompt}. Clean and sharp lines, no blurry parts, no watermarks.` }] },
+    contents: { parts: [{ text: `High-quality 3D render, ${finalPrompt}. Clean and sharp, no artifacts.` }] },
     config: { imageConfig: { aspectRatio: AspectRatio.SIXTEEN_NINE, imageSize: "1K" } }
   }));
   const part = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);

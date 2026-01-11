@@ -147,24 +147,41 @@ const App: React.FC = () => {
     }
   };
 
-  // --- Logic: Semantic Sentence Splitter ---
-  const splitAndGroupSentences = (text: string, maxGroupSize: number): string[] => {
+  // --- Logic: Semantic Sentence Splitter by Character Length ---
+  const splitAndGroupSentences = (text: string, targetLength: number): string[] => {
     if (!text) return [];
-    const paragraphs = text.split(/\n\s*\n|\n/).filter(p => p.trim().length > 0);
+    
+    // 줄바꿈을 공백으로 치환하여 문단 전체를 하나의 텍스트 스트림으로 처리 (문맥 끊김 방지)
+    const sanitizedText = text.replace(/\n/g, ' ');
+    
+    // 1. 문장 단위로 분리
+    const rawSentences = sanitizedText.match(/[^.!?]+[.!?]+["']?|[^.!?]+$/g) || [sanitizedText];
+    const sentences = rawSentences.map(s => s.trim()).filter(s => s.length > 0);
+    
     const finalSegments: string[] = [];
-    paragraphs.forEach(paragraph => {
-        const sentences = paragraph.match(/[^.!?]+[.!?]+["']?|[^.!?]+$/g) || [paragraph];
-        const cleanedSentences = sentences.map(s => s.trim()).filter(s => s.length > 0);
-        let currentGroup: string[] = [];
-        cleanedSentences.forEach(sentence => {
-            currentGroup.push(sentence);
-            if (currentGroup.length >= maxGroupSize) {
-                finalSegments.push(currentGroup.join(' '));
-                currentGroup = [];
-            }
-        });
-        if (currentGroup.length > 0) finalSegments.push(currentGroup.join(' '));
+    let currentGroup = "";
+
+    sentences.forEach((sentence) => {
+      // 2. 현재 그룹이 비어있으면 무조건 담기
+      if (currentGroup.length === 0) {
+        currentGroup = sentence;
+      } 
+      // 3. 현재 그룹에 문장을 더해도 목표 길이보다 작으면 병합
+      else if (currentGroup.length + sentence.length < targetLength) {
+        currentGroup += " " + sentence;
+      } 
+      // 4. 목표 길이를 넘어가면 현재 그룹을 확정하고, 새 그룹 시작
+      else {
+        finalSegments.push(currentGroup);
+        currentGroup = sentence;
+      }
     });
+
+    // 마지막 남은 그룹 처리
+    if (currentGroup.length > 0) {
+      finalSegments.push(currentGroup);
+    }
+
     return finalSegments;
   };
 
@@ -180,9 +197,11 @@ const App: React.FC = () => {
     abortControllerRef.current = controller;
 
     try {
-      // 인트로는 짧은 호흡(2문장), 본문은 긴 호흡(5문장)으로 그룹화하여 이미지 생성 수 조절
-      const introSegments = splitAndGroupSentences(introScript, 2);
-      const bodySegments = splitAndGroupSentences(bodyScript, 5); // 5문장씩 그룹화 (요청사항 반영)
+      // Intro: 80자 이상 (호흡 빠름)
+      // Body: 120자 이상 (호흡 널널함, 대략 100~150자 구간에 이미지 1장)
+      const introSegments = splitAndGroupSentences(introScript, 80);
+      const bodySegments = splitAndGroupSentences(bodyScript, 120); 
+      
       const allSegments = [...introSegments, ...bodySegments];
       const introCount = introSegments.length;
 
