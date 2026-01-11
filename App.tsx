@@ -180,8 +180,9 @@ const App: React.FC = () => {
     abortControllerRef.current = controller;
 
     try {
+      // 인트로는 짧은 호흡(2문장), 본문은 긴 호흡(5문장)으로 그룹화하여 이미지 생성 수 조절
       const introSegments = splitAndGroupSentences(introScript, 2);
-      const bodySegments = splitAndGroupSentences(bodyScript, 4);
+      const bodySegments = splitAndGroupSentences(bodyScript, 5); // 5문장씩 그룹화 (요청사항 반영)
       const allSegments = [...introSegments, ...bodySegments];
       const introCount = introSegments.length;
 
@@ -238,23 +239,31 @@ const App: React.FC = () => {
   };
 
   const handleStartProduction = async () => {
-    // Non-blocking batch generation
+    // Blocking batch generation with Global Modal
+    setLoadingType('image'); // This triggers the global modal
     setError(null);
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
     try {
       const pendingItems = generatedMedia.filter(m => !m.mediaUrl);
-      let completedCount = generatedMedia.length - pendingItems.length;
+      const totalItems = generatedMedia.length;
+      let completedCount = totalItems - pendingItems.length;
 
       for (const item of pendingItems) {
         if (controller.signal.aborted) break;
         
-        // Show processing status on the specific card
+        // Update both global modal status and local card status
+        const progressPercent = Math.round(((completedCount) / totalItems) * 100);
+        setLoadingStatus(`현재 ${completedCount + 1} / 전체 ${totalItems} 장 생성 중... (${progressPercent}%)`);
+        setProgress(progressPercent);
+        
         setGeneratedMedia(prev => prev.map(p => p.index === item.index ? { ...p, isProcessing: true } : p));
 
         try {
-          if (completedCount > 0) await new Promise(r => setTimeout(r, 4000));
+          // Rate limit buffer
+          if (completedCount > 0) await new Promise(r => setTimeout(r, 2000));
+          
           const url = await generateImage(item.prompt, googleApiKey);
           setGeneratedMedia(prev => prev.map(p => p.index === item.index ? { ...p, mediaUrl: url, isProcessing: false } : p));
           completedCount++;
@@ -263,6 +272,7 @@ const App: React.FC = () => {
           setGeneratedMedia(prev => prev.map(p => p.index === item.index ? { ...p, isProcessing: false } : p));
         }
       }
+      
       if (!controller.signal.aborted) {
         saveProject({
           id: Date.now().toString(),
@@ -275,6 +285,8 @@ const App: React.FC = () => {
       }
     } catch (e: any) {
       setError(e.message);
+    } finally {
+      setLoadingType('none');
     }
   };
 
@@ -616,7 +628,8 @@ const App: React.FC = () => {
                 {loadingType === 'ideas' ? '아이디어 발굴 중' :
                  loadingType === 'script' ? '대본 작성 중' :
                  loadingType === 'planning' ? '대본 분석 및 설계 중' : 
-                 loadingType === 'single_image' ? '개별 작업 처리 중' : '콘텐츠 생성 중'}
+                 loadingType === 'single_image' ? '개별 작업 처리 중' : 
+                 loadingType === 'image' ? '이미지 일괄 생성 중' : '콘텐츠 생성 중'}
               </h2>
               <p className="text-[#4e5968] font-medium mb-8">{loadingStatus}</p>
               {loadingType !== 'ideas' && loadingType !== 'script' && loadingType !== 'planning' && loadingType !== 'single_image' && (
